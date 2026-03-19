@@ -53,17 +53,14 @@ var frameTimeLast = performance.now();
 var frameTimes = 0.0;
 
 cap.onmessage = event => {
-    const arr = new Uint8Array(event.data);
-    const type = arr[arr.length - 1] == 42 ? "key" : "delta";
-    const data = arr.subarray(0, arr.length - 1);
-
+    const data = new Uint8Array(event.data);
     const timestamp = performance.now();
     frameTimes = timestamp - frameTimeLast;
     frameTimeLast = timestamp;
 
     try {
         const chunk = new EncodedVideoChunk({
-            type, timestamp, data,
+            type: "key", timestamp, data,
         });
 
         decoder.decode(chunk);

@@ -20,7 +20,7 @@ impl NalSender {
             return Err(());
         }
 
-        if self.ws.send(ws::Message::Binary(data.into())).await.is_ok() {
+        if self.ws.send(data.into()).await.is_ok() {
             Ok(())
         } else {
             Err(())
@@ -107,8 +107,6 @@ impl Cap {
             let mut do_intra = INTRA_CNT;
 
             loop {
-                let mut intra = false;
-
                 if Self::get_instance()
                     .refresh_encoder
                     .swap(false, atomic::Ordering::SeqCst)
@@ -117,7 +115,6 @@ impl Cap {
                 }
 
                 if do_intra > 0 {
-                    intra = true;
                     do_intra -= 1;
                     encoder.force_intra_frame();
 
@@ -126,11 +123,10 @@ impl Cap {
                     }
                 }
 
-                let nal = frame_receiver.recv().unwrap().map(|frame| {
-                    let mut data = encoder.encode(&frame).unwrap().to_vec();
-                    data.push(if intra { 42 } else { 0 });
-                    data
-                });
+                let nal = frame_receiver
+                    .recv()
+                    .unwrap()
+                    .map(|frame| encoder.encode(&frame).unwrap().to_vec());
 
                 if nal_sender.send(nal).is_err() {
                     break;
