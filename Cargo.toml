@@ -1,0 +1,61 @@
+[package]
+name = "webds"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies."clap"]
+version = "4.6"
+
+[dependencies."tokio"]
+version = "1"
+default-features = false
+features = ["rt", "io-util", "rt-multi-thread"]
+
+[dependencies."axum"]
+version = "0.8"
+default-features = false
+features = ["http1", "tokio", "ws"]
+
+[dependencies."log"]
+version = "0.4"
+default-features = false
+
+[dependencies."env_logger"]
+version = "0.11"
+default-features = false
+features = ["auto-color", "humantime"]
+
+[dependencies."openh264"]
+version = "0.9"
+default-features = false
+features = ["source"]
+
+[dependencies."memmap2"]
+version = "0.9"
+default-features = false
+
+[dependencies."memfd"]
+version = "0.6"
+default-features = false
+
+[dependencies."wayland-client"]
+version = "0.31"
+default-features = false
+
+[dependencies."wayland-protocols"]
+version = "0.32"
+default-features = false
+features = ["client", "unstable"]
+
+[dependencies."wayland-protocols-wlr"]
+version = "0.3"
+default-features = false
+features = ["client"]
+
+[dependencies."wayland-protocols-misc"]
+version = "0.3"
+default-features = false
+features = ["client"]
+
+[dependencies."xkbcommon"]
+version = "0.9"

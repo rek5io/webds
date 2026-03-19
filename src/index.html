@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: black;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    canvas {
+        width: 100vw;
+        height: 100vh;
+        background: black;
+    }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const cap = new WebSocket("ws://" + location.host + "/cap");
+const hid = new WebSocket("ws://" + location.host + "/hid");
+
+cap.binaryType = "arraybuffer";
+
+const decoder = new VideoDecoder({
+    output: frame => {
+        canvas.width = frame.codedWidth;
+        canvas.height = frame.codedHeight;
+        ctx.drawImage(frame, 0, 0);
+        frame.close();
+    },
+
+    error: e => console.error("decoder error:", e)
+});
+
+decoder.configure({
+    codec: "avc1.42E01E",
+    optimizeForLatency: true
+});
+
+var frameTimeLast = performance.now();
+var frameTimes = 0.0;
+
+cap.onmessage = event => {
+    const arr = new Uint8Array(event.data);
+    const type = arr[arr.length - 1] == 42 ? "key" : "delta";
+    const data = arr.subarray(0, arr.length - 1);
+
+    const timestamp = performance.now();
+    frameTimes = timestamp - frameTimeLast;
+    frameTimeLast = timestamp;
+
+    try {
+        const chunk = new EncodedVideoChunk({
+            type, timestamp, data,
+        });
+
+        decoder.decode(chunk);
+    } catch (err) {
+        console.error("decoding error:", err);
+    }
+};
+
+function sendHid(msg) {
+    if (hid.readyState === WebSocket.OPEN) {
+        hid.send(msg);
+    }
+}
+
+function sendMouseMove(e) {
+    const x = Math.min(Math.max(e.pageX / document.documentElement.scrollWidth, 0), 1);
+    const y = Math.min(Math.max(e.pageY / document.documentElement.scrollHeight, 0), 1);
+    sendHid(`mma ${x.toFixed(5)} ${y.toFixed(5)}`);
+}
+
+canvas.addEventListener("mousemove", sendMouseMove);
+
+canvas.addEventListener("mousedown", (e) => {
+    sendHid(`pm ${e.button}`);
+});
+
+canvas.addEventListener("mouseup", (e) => {
+    sendHid(`rm ${e.button}`);
+});
+
+canvas.addEventListener("keydown", (e) => {
+    e.preventDefault();
+    sendHid(`pk ${e.key}`);
+});
+
+canvas.addEventListener("keyup", (e) => {
+    e.preventDefault();
+    sendHid(`rk ${e.key}`);
+});
+
+canvas.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+});
+
+function overlay() {
+    const statsOverlay = document.createElement("div");
+    statsOverlay.style.position = "absolute";
+    statsOverlay.style.top = "10px";
+    statsOverlay.style.left = "10px";
+    statsOverlay.style.color = "lime";
+    statsOverlay.style.background = "rgba(0,0,0,0.6)";
+    statsOverlay.style.padding = "8px";
+    statsOverlay.style.fontFamily = "monospace";
+    statsOverlay.style.fontSize = "16px";
+    statsOverlay.style.zIndex = "1000";
+    statsOverlay.style.pointerEvents = "none";
+    document.body.appendChild(statsOverlay);
+
+    setInterval(() => {
+        const fps = 1000.0 / frameTimes;
+        const fpsFmt = (fps > 100.0 || fps < 1.0) ? "" : `Fps: ${fps.toFixed(0)}`;
+
+        statsOverlay.textContent = 
+            `Res: ${canvas.width} x ${canvas.height} ${fpsFmt}`;
+    }, 700);
+}
+
+overlay();
+</script>
+</body>
+</html>
