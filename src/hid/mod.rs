@@ -52,12 +52,12 @@ impl HidCommand {
             }
         }
 
-        if let Some(key) = self.0.strip_prefix("pk") {
-            let _ = backend.press_key(key.trim());
+        if let Some(key) = self.0.strip_prefix("pk ") {
+            backend.press_key(key);
         }
 
-        if let Some(key) = self.0.strip_prefix("rk") {
-            let _ = backend.release_key(key.trim());
+        if let Some(key) = self.0.strip_prefix("rk ") {
+            backend.release_key(key);
         }
     }
 }

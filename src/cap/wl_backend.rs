@@ -22,6 +22,7 @@ pub struct WlBackend {
     output: Option<WlOutput>,
     ready_frame: Option<YUVBuffer>,
     buffer: Option<WlBuffer>,
+    rgb_buffer: Vec<u8>,
     mmap: Option<Mmap>,
     width: u32,
     height: u32,
@@ -54,6 +55,7 @@ impl WlBackend {
             output: None,
             ready_frame: None,
             buffer: None,
+            rgb_buffer: Vec::new(),
             mmap: None,
             width: 0,
             height: 0,
@@ -95,6 +97,7 @@ impl WlBackend {
 
         frame.copy(self.buffer.as_ref().ok_or(Error::Buffer)?);
         ev.blocking_dispatch(self).map_err(|_| Error::Dispatch)?;
+        frame.destroy();
 
         self.ev = Some(ev);
         self.ready_frame.take().ok_or(Error::NoFrame)
@@ -170,6 +173,7 @@ impl Dispatch<ZwlrScreencopyFrameV1, ()> for WlBackend {
                     return;
                 }
 
+                state.rgb_buffer = Vec::with_capacity((state.width * state.height * 3) as usize);
                 state.width = width;
                 state.height = height;
                 state.stride = stride;
@@ -213,14 +217,16 @@ impl Dispatch<ZwlrScreencopyFrameV1, ()> for WlBackend {
                 );
 
                 let buffer = state.mmap.as_ref().unwrap();
-                let mut rgb = Vec::with_capacity((state.width * state.height * 3) as usize);
+                state.rgb_buffer.clear();
 
                 for pixels in buffer.chunks_exact(4) {
-                    rgb.extend_from_slice(&[pixels[2], pixels[1], pixels[0]]);
+                    state
+                        .rgb_buffer
+                        .extend_from_slice(&[pixels[2], pixels[1], pixels[0]]);
                 }
 
                 state.ready_frame = Some(YUVBuffer::from_rgb8_source(RgbSliceU8::new(
-                    &rgb,
+                    &state.rgb_buffer,
                     (state.width as usize, state.height as usize),
                 )));
             }

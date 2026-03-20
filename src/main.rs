@@ -1,8 +1,4 @@
-use axum::{
-    Router,
-    routing::{any, get},
-};
-
+use axum::routing::{any, get};
 fn main() {
     let args = webds::args::get_args();
 
@@ -20,17 +16,17 @@ fn main() {
         .unwrap();
 
     rt.block_on(async {
-        let routes = Router::new()
+        let router = axum::Router::new()
             .route("/", get(webds::index))
             .route("/cap", any(webds::handle_cap))
             .route("/hid", any(webds::handle_hid));
 
+        let addr = std::net::SocketAddr::from(([0, 0, 0, 0], args.port));
+        let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+        let tls_acceptor = webds::load_tls();
+
         log::info!("starting up at port: {}", args.port);
 
-        let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", args.port))
-            .await
-            .unwrap();
-
-        axum::serve(listener, routes).await.unwrap();
+        webds::serve(router, tls_acceptor, listener).await
     });
 }

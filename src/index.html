@@ -23,14 +23,15 @@
 </style>
 </head>
 <body>
-<canvas id="canvas"></canvas>
+<canvas id="canvas" tabindex="0"></canvas>
 
 <script>
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-const cap = new WebSocket("ws://" + location.host + "/cap");
-const hid = new WebSocket("ws://" + location.host + "/hid");
+const cap = new WebSocket("wss://" + location.host + "/cap");
+const hid = new WebSocket("wss://" + location.host + "/hid");
 
+canvas.focus();
 cap.binaryType = "arraybuffer";
 
 const decoder = new VideoDecoder({
