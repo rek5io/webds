@@ -12,7 +12,7 @@ impl NalSender {
         Self { ws }
     }
 
-    pub async fn try_send(&mut self, data: Vec<u8>) -> Result<(), ()> {
+    pub async fn try_send(&mut self, data: bytes::Bytes) -> Result<(), ()> {
         if super::util::try_poll_once(self.ws.recv())
             .await
             .is_some_and(|r| r.is_none())
@@ -150,7 +150,7 @@ impl Cap {
                     break;
                 }
 
-                let nal = nal_receiver.recv().unwrap().unwrap();
+                let nal: bytes::Bytes = nal_receiver.recv().unwrap().unwrap().into();
 
                 //let start = std::time::Instant::now();
 

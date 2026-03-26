@@ -1116,6 +1116,7 @@ name = "webds"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "bytes",
  "clap",
  "env_logger",
  "hyper",

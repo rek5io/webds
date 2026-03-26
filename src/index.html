@@ -47,21 +47,23 @@ const decoder = new VideoDecoder({
 
 decoder.configure({
     codec: "avc1.42E01E",
-    optimizeForLatency: true
+    optimizeForLatency: true,
+    hardwareAcceleration: "prefer-hardware"
 });
 
 var frameTimeLast = performance.now();
 var frameTimes = 0.0;
 
 cap.onmessage = event => {
-    const data = new Uint8Array(event.data);
     const timestamp = performance.now();
     frameTimes = timestamp - frameTimeLast;
     frameTimeLast = timestamp;
 
     try {
         const chunk = new EncodedVideoChunk({
-            type: "key", timestamp, data,
+            type: "key",
+            timestamp,
+            data: event.data,
         });
 
         decoder.decode(chunk);
