@@ -12,7 +12,7 @@ impl NalSender {
         Self { ws }
     }
 
-    pub async fn try_send(&mut self, data: bytes::Bytes) -> Result<(), ()> {
+    async fn try_send(&mut self, data: bytes::Bytes) -> Result<(), ()> {
         if super::util::try_poll_once(self.ws.recv())
             .await
             .is_some_and(|r| r.is_none())

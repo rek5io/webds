@@ -26,112 +26,120 @@
 <canvas id="canvas" tabindex="0"></canvas>
 
 <script>
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const cap = new WebSocket("wss://" + location.host + "/cap");
-const hid = new WebSocket("wss://" + location.host + "/hid");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const cap = new WebSocket("wss://" + location.host + "/cap");
+    const hid = new WebSocket("wss://" + location.host + "/hid");
 
-canvas.focus();
-cap.binaryType = "arraybuffer";
+    canvas.focus();
+    cap.binaryType = "arraybuffer";
 
-const decoder = new VideoDecoder({
-    output: frame => {
-        canvas.width = frame.codedWidth;
-        canvas.height = frame.codedHeight;
-        ctx.drawImage(frame, 0, 0);
-        frame.close();
-    },
+    const decoder = new VideoDecoder({
+        output: frame => {
+            canvas.width = frame.codedWidth;
+            canvas.height = frame.codedHeight;
+            ctx.drawImage(frame, 0, 0);
+            frame.close();
+        },
 
-    error: e => console.error("decoder error:", e)
-});
+        error: e => console.error("decoder error:", e)
+    });
 
-decoder.configure({
-    codec: "avc1.42E01E",
-    optimizeForLatency: true,
-    hardwareAcceleration: "prefer-hardware"
-});
+    decoder.configure({
+        codec: "avc1.42E01E",
+        optimizeForLatency: true,
+        hardwareAcceleration: "prefer-hardware"
+    });
 
-var frameTimeLast = performance.now();
-var frameTimes = 0.0;
+    let times = [];
 
-cap.onmessage = event => {
-    const timestamp = performance.now();
-    frameTimes = timestamp - frameTimeLast;
-    frameTimeLast = timestamp;
+    const updateFps = () => {
+        const now = performance.now();
+        times.push(now);
 
-    try {
-        const chunk = new EncodedVideoChunk({
-            type: "key",
-            timestamp,
-            data: event.data,
-        });
-
-        decoder.decode(chunk);
-    } catch (err) {
-        console.error("decoding error:", err);
+        while (times.length > 0 && times[0] <= now - 1000) {
+            times.shift();
+        }
     }
-};
 
-function sendHid(msg) {
-    if (hid.readyState === WebSocket.OPEN) {
-        hid.send(msg);
+    const getFps = () => {
+        return times.length;
     }
-}
 
-function sendMouseMove(e) {
-    const x = Math.min(Math.max(e.pageX / document.documentElement.scrollWidth, 0), 1);
-    const y = Math.min(Math.max(e.pageY / document.documentElement.scrollHeight, 0), 1);
-    sendHid(`mma ${x.toFixed(5)} ${y.toFixed(5)}`);
-}
+    cap.onmessage = event => {
+        updateFps();
 
-canvas.addEventListener("mousemove", sendMouseMove);
+        try {
+            const chunk = new EncodedVideoChunk({
+                type: "key",
+                timestamp: performance.now(),
+                data: event.data,
+            });
 
-canvas.addEventListener("mousedown", (e) => {
-    sendHid(`pm ${e.button}`);
-});
+            decoder.decode(chunk);
+        } catch (err) {
+            console.error("decoding error:", err);
+        }
+    };
 
-canvas.addEventListener("mouseup", (e) => {
-    sendHid(`rm ${e.button}`);
-});
+    const sendHid = msg => {
+        if (hid.readyState === WebSocket.OPEN) {
+            hid.send(msg);
+        }
+    }
 
-canvas.addEventListener("keydown", (e) => {
-    e.preventDefault();
-    sendHid(`pk ${e.key}`);
-});
+    const sendMouseMove = e => {
+        const x = Math.min(Math.max(e.pageX / document.documentElement.scrollWidth, 0), 1);
+        const y = Math.min(Math.max(e.pageY / document.documentElement.scrollHeight, 0), 1);
+        sendHid(`mma ${x.toFixed(5)} ${y.toFixed(5)}`);
+    }
 
-canvas.addEventListener("keyup", (e) => {
-    e.preventDefault();
-    sendHid(`rk ${e.key}`);
-});
+    canvas.addEventListener("mousemove", sendMouseMove);
 
-canvas.addEventListener("contextmenu", (e) => {
-    e.preventDefault();
-});
+    canvas.addEventListener("mousedown", (e) => {
+        sendHid(`pm ${e.button}`);
+    });
 
-function overlay() {
-    const statsOverlay = document.createElement("div");
-    statsOverlay.style.position = "absolute";
-    statsOverlay.style.top = "10px";
-    statsOverlay.style.left = "10px";
-    statsOverlay.style.color = "lime";
-    statsOverlay.style.background = "rgba(0,0,0,0.6)";
-    statsOverlay.style.padding = "8px";
-    statsOverlay.style.fontFamily = "monospace";
-    statsOverlay.style.fontSize = "16px";
-    statsOverlay.style.zIndex = "1000";
-    statsOverlay.style.pointerEvents = "none";
-    document.body.appendChild(statsOverlay);
+    canvas.addEventListener("mouseup", (e) => {
+        sendHid(`rm ${e.button}`);
+    });
 
-    setInterval(() => {
-        const fps = 1000.0 / frameTimes;
-        const fpsFmt = (fps > 100.0 || fps < 1.0) ? "" : `Fps: ${fps.toFixed(0)}`;
+    canvas.addEventListener("keydown", (e) => {
+        e.preventDefault();
+        sendHid(`pk ${e.key}`);
+    });
 
-        statsOverlay.textContent = 
-            `Res: ${canvas.width} x ${canvas.height} ${fpsFmt}`;
-    }, 700);
-}
+    canvas.addEventListener("keyup", (e) => {
+        e.preventDefault();
+        sendHid(`rk ${e.key}`);
+    });
 
-overlay();
+    canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+    const overlay = () => {
+        const statsOverlay = document.createElement("div");
+        statsOverlay.style.position = "absolute";
+        statsOverlay.style.top = "10px";
+        statsOverlay.style.left = "10px";
+        statsOverlay.style.color = "lime";
+        statsOverlay.style.background = "rgba(0,0,0,0.6)";
+        statsOverlay.style.padding = "8px";
+        statsOverlay.style.fontFamily = "monospace";
+        statsOverlay.style.fontSize = "16px";
+        statsOverlay.style.zIndex = "1000";
+        statsOverlay.style.pointerEvents = "none";
+        document.body.appendChild(statsOverlay);
+
+        setInterval(() => {
+            const fps = getFps();
+            const fpsFmt = (fps > 100.0 || fps < 1.0) ? "" : `Fps: ${fps.toFixed(0)}`;
+
+            statsOverlay.textContent = 
+                `Res: ${canvas.width} x ${canvas.height} ${fpsFmt}`;
+        }, 700);
+    }
+
+    overlay();
 </script>
 </body>
 </html>

@@ -179,6 +179,12 @@ impl Dispatch<ZwlrScreencopyFrameV1, ()> for WlBackend {
                 state.stride = stride;
                 state.format = format;
 
+                assert_eq!(
+                    state.format,
+                    wl_shm::Format::Xrgb8888,
+                    "Unsupported pixel format for now",
+                );
+
                 let size = state.stride * state.height;
 
                 let fd = memfd::MemfdOptions::new()
@@ -187,6 +193,9 @@ impl Dispatch<ZwlrScreencopyFrameV1, ()> for WlBackend {
 
                 fd.as_file().set_len(size as u64).unwrap();
 
+                //SAFETY: we are reading mmap backed buffer only after frame is ready
+                state.mmap = Some(unsafe { memmap2::Mmap::map(fd.as_file()).unwrap() });
+
                 let pool: WlShmPool = state.shm.as_ref().unwrap().create_pool(
                     fd.as_file().as_fd(),
                     size as i32,
@@ -194,7 +203,7 @@ impl Dispatch<ZwlrScreencopyFrameV1, ()> for WlBackend {
                     (),
                 );
 
-                let buffer: WlBuffer = pool.create_buffer(
+                state.buffer = Some(pool.create_buffer(
                     0,
                     state.width as i32,
                     state.height as i32,
@@ -202,20 +211,10 @@ impl Dispatch<ZwlrScreencopyFrameV1, ()> for WlBackend {
                     format,
                     qhandle,
                     (),
-                );
-
-                //SAFETY: we are reading mmap backed buffer only after frame is ready
-                state.mmap = Some(unsafe { memmap2::Mmap::map(fd.as_file()).unwrap() });
-                state.buffer = Some(buffer);
+                ));
             }
 
             zwlr_screencopy_frame_v1::Event::Ready { .. } => {
-                assert_eq!(
-                    state.format,
-                    wl_shm::Format::Xrgb8888,
-                    "Unsupported pixel format for now",
-                );
-
                 let buffer = state.mmap.as_ref().unwrap();
                 state.rgb_buffer.clear();
 
