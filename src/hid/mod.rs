@@ -1,7 +1,7 @@
-use std::sync::{LazyLock, Mutex, mpsc};
+use std::sync::{LazyLock, mpsc};
 mod wl_backend;
 
-static HID_SENDER: LazyLock<Mutex<mpsc::Sender<HidCommand>>> = LazyLock::new(|| {
+static HID_SENDER: LazyLock<mpsc::Sender<HidCommand>> = LazyLock::new(|| {
     let (s, r) = mpsc::channel::<HidCommand>();
 
     std::thread::spawn(move || {
@@ -17,11 +17,11 @@ static HID_SENDER: LazyLock<Mutex<mpsc::Sender<HidCommand>>> = LazyLock::new(|| 
         }
     });
 
-    Mutex::new(s)
+    s
 });
 
 pub fn send_event(event: HidCommand) {
-    HID_SENDER.lock().unwrap().send(event).unwrap();
+    HID_SENDER.send(event).unwrap();
 }
 
 pub struct HidCommand(String);
