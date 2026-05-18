@@ -1,14 +1,22 @@
 use std::os::fd::AsFd;
-use wayland_client::EventQueue;
-use wayland_client::protocol::wl_keyboard::{KeyState, KeymapFormat};
-use wayland_client::protocol::wl_output::{self, WlOutput};
-use wayland_client::protocol::wl_pointer::ButtonState;
-use wayland_client::protocol::wl_seat::WlSeat;
-use wayland_client::{Connection, Dispatch, QueueHandle, protocol::wl_registry};
-use wayland_protocols_misc::zwp_virtual_keyboard_v1::client::zwp_virtual_keyboard_manager_v1::ZwpVirtualKeyboardManagerV1;
-use wayland_protocols_misc::zwp_virtual_keyboard_v1::client::zwp_virtual_keyboard_v1::ZwpVirtualKeyboardV1;
-use wayland_protocols_wlr::virtual_pointer::v1::client::zwlr_virtual_pointer_manager_v1::ZwlrVirtualPointerManagerV1;
-use wayland_protocols_wlr::virtual_pointer::v1::client::zwlr_virtual_pointer_v1::ZwlrVirtualPointerV1;
+use wayland_client::{
+    Connection, Dispatch, EventQueue, QueueHandle,
+    protocol::{
+        wl_keyboard::{KeyState, KeymapFormat},
+        wl_output::{self, WlOutput},
+        wl_pointer::ButtonState,
+        wl_registry,
+        wl_seat::WlSeat,
+    },
+};
+use wayland_protocols_misc::zwp_virtual_keyboard_v1::client::{
+    zwp_virtual_keyboard_manager_v1::ZwpVirtualKeyboardManagerV1,
+    zwp_virtual_keyboard_v1::ZwpVirtualKeyboardV1,
+};
+use wayland_protocols_wlr::virtual_pointer::v1::client::{
+    zwlr_virtual_pointer_manager_v1::ZwlrVirtualPointerManagerV1,
+    zwlr_virtual_pointer_v1::ZwlrVirtualPointerV1,
+};
 use xkbcommon::xkb;
 
 pub struct WlBackend {

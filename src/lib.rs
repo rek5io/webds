@@ -30,7 +30,7 @@ pub async fn handle_cap(wu: WebSocketUpgrade) -> Response {
 }
 
 pub async fn index() -> Html<&'static str> {
-    Html(include_str!("index.html"))
+    Html(include_str!("web/index.html"))
 }
 
 pub fn load_tls() -> TlsAcceptor {
@@ -60,9 +60,12 @@ pub async fn serve(router: Router, tls_acceptor: TlsAcceptor, listener: TcpListe
 
     let server = hyper_util::server::conn::auto::Builder::new(hyper_util::rt::TokioExecutor::new());
 
+    let service =
+        hyper::service::service_fn(move |req: Request<Incoming>| router.clone().call(req));
+
     loop {
         let server = server.clone();
-        let router = router.clone();
+        let service = service.clone();
         let tls_acceptor = tls_acceptor.clone();
 
         let Ok((cnx, addr)) = listener.accept().await else {
@@ -80,10 +83,6 @@ pub async fn serve(router: Router, tls_acceptor: TlsAcceptor, listener: TcpListe
                     .await;
             } else if let Ok(stream) = tls_acceptor.accept(cnx).await {
                 let stream = hyper_util::rt::TokioIo::new(stream);
-
-                let service = hyper::service::service_fn(move |req: Request<Incoming>| {
-                    router.clone().call(req)
-                });
 
                 if let Err(err) = server.serve_connection_with_upgrades(stream, service).await {
                     log::error!("got error: {:?}, serving {}", err, addr);

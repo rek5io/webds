@@ -103,7 +103,7 @@ impl Cap {
             )
             .unwrap();
 
-            const INTRA_CNT: usize = 60;
+            const INTRA_CNT: usize = 16;
             let mut do_intra = INTRA_CNT;
 
             loop {

@@ -1,16 +1,18 @@
 use memmap2::Mmap;
 use openh264::formats::{RgbSliceU8, YUVBuffer};
 use std::os::fd::AsFd;
-use wayland_client::protocol::{
-    wl_buffer::WlBuffer,
-    wl_output::WlOutput,
-    wl_shm::{self, WlShm},
-    wl_shm_pool::WlShmPool,
+use wayland_client::{
+    Connection, Dispatch, EventQueue, QueueHandle, WEnum,
+    protocol::{
+        wl_buffer::WlBuffer,
+        wl_output::WlOutput,
+        wl_registry,
+        wl_shm::{self, WlShm},
+        wl_shm_pool::WlShmPool,
+    },
 };
-use wayland_client::{Connection, Dispatch, QueueHandle, protocol::wl_registry};
-use wayland_client::{EventQueue, WEnum};
 use wayland_protocols_wlr::screencopy::v1::client::{
-    zwlr_screencopy_frame_v1, zwlr_screencopy_frame_v1::ZwlrScreencopyFrameV1,
+    zwlr_screencopy_frame_v1::{self, ZwlrScreencopyFrameV1},
     zwlr_screencopy_manager_v1::ZwlrScreencopyManagerV1,
 };
 
